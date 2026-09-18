@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>إضافة موظفين</title>
+<style>
+    /* مظهر فاتح دائمًا: لا يتبع إعداد الهاتف حتى يكون الشكل واحدًا عند الجميع */
+    :root {
+        --primary: #1a73e8;
+        --primary-dark: #0d3f8f;
+        --success: #137333;
+        --danger: #c5221f;
+        --warning: #b06000;
+        --bg: #f1f3f6;
+        --card: #ffffff;
+        --text: #1f2430;
+        --text-dim: #6b7280;
+        --border: #dfe3ea;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+        margin: 0;
+        padding: 0 0 40px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: -apple-system, "Segoe UI", Roboto, "Noto Naskh Arabic", Tahoma, sans-serif;
+        font-size: 15px;
+        line-height: 1.7;
+    }
+
+    header {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: #fff;
+        padding: 22px 18px 20px;
+        text-align: center;
+    }
+    header h1 { margin: 0; font-size: 20px; }
+    header p { margin: 6px 0 0; font-size: 13px; opacity: .85; }
+
+    .wrap { padding: 16px; max-width: 560px; margin: 0 auto; }
+
+    .card {
+        background: var(--card);
+        border-radius: 16px;
+        padding: 18px;
+        margin-bottom: 14px;
+        box-shadow: 0 1px 3px rgba(0,0,0,.08);
+    }
+
+    .step-title { display: flex; align-items: center; gap: 10px; margin: 0 0 14px; font-size: 16px; font-weight: 700; }
+    .step-num {
+        width: 28px; height: 28px; border-radius: 50%;
+        background: var(--primary); color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; font-weight: 700; flex-shrink: 0;
+    }
+    .card.done .step-num { background: var(--success); }
+
+    label { display: block; font-size: 13px; color: var(--text-dim); margin-bottom: 6px; }
+
+    input[type="text"], input[type="file"] {
+        width: 100%;
+        padding: 13px;
+        border: 1.5px solid var(--border);
+        border-radius: 12px;
+        background: var(--bg);
+        color: var(--text);
+        font-size: 16px;
+        font-family: inherit;
+    }
+    input[type="text"] { direction: ltr; text-align: left; letter-spacing: .5px; }
+    input:focus { outline: none; border-color: var(--primary); }
+
+    .btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 12px;
+        background: var(--primary);
+        color: #fff;
+        font-size: 16px;
+        font-weight: 700;
+        font-family: inherit;
+        margin-top: 12px;
+        cursor: pointer;
+    }
+    .btn.big { padding: 18px; font-size: 18px; background: var(--success); }
+    .btn.ghost { background: var(--border); color: var(--text); font-size: 14px; padding: 12px; }
+    .btn:disabled { opacity: .55; }
+
+    .status { margin-top: 12px; font-size: 14px; padding: 12px; border-radius: 10px; display: none; }
+    .status.show { display: block; }
+    .status.ok { background: #e6f4ea; color: var(--success); }
+    .status.bad { background: #fce8e6; color: var(--danger); }
+    .status.warn { background: #fef7e0; color: var(--warning); }
+    .status.plain { background: var(--bg); color: var(--text); }
+
+    .hint { font-size: 12.5px; color: var(--text-dim); margin: 8px 0 0; }
+
+    .progress-track { height: 8px; background: var(--border); border-radius: 8px; overflow: hidden; margin-top: 14px; }
+    .progress-fill { height: 100%; width: 0; background: var(--success); transition: width .3s; }
+
+    .spinner {
+        display: inline-block; width: 15px; height: 15px;
+        border: 2px solid rgba(255,255,255,.35); border-top-color: #fff;
+        border-radius: 50%; animation: spin .8s linear infinite; vertical-align: -2px; margin-left: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-box { margin-top: 14px; padding: 14px; border-radius: 12px; background: var(--bg); font-size: 15px; display: none; }
+    .result-box.show { display: block; }
+    .result-line { margin: 4px 0; }
+    .big-number { font-size: 22px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>إضافة موظفين</h1>
+    <p>نقل الموظفين وبصماتهم إلى جهاز البصمة</p>
+</header>
+
+<div class="wrap">
+
+    <!-- 1 - الجهاز -->
+    <div class="card" id="card-device">
+        <h2 class="step-title"><span class="step-num">1</span> عنوان الجهاز</h2>
+        <label>اكتب عنوان جهاز البصمة</label>
+        <input type="text" id="device-ip" placeholder="192.168.1.201" inputmode="decimal" autocomplete="off">
+        <button class="btn" id="check-btn" onclick="checkDevice()">فحص الاتصال</button>
+        <div class="status" id="device-status"></div>
+        <p class="hint">يجب أن يكون هاتفك متصلاً بنفس شبكة الواي فاي التي عليها الجهاز.</p>
+    </div>
+
+    <!-- 2 - الملف -->
+    <div class="card" id="card-file">
+        <h2 class="step-title"><span class="step-num">2</span> ملف الموظفين</h2>
+        <label>اختر الملف الذي وصلك</label>
+        <input type="file" id="emp-file" accept=".json,application/json" onchange="fileChosen()">
+        <div class="status" id="file-status"></div>
+    </div>
+
+    <!-- 3 - الإرسال -->
+    <div class="card" id="card-send">
+        <h2 class="step-title"><span class="step-num">3</span> الإرسال إلى الجهاز</h2>
+        <button class="btn big" id="send-btn" onclick="startImport()" disabled>إرسال الموظفين إلى الجهاز</button>
+        <div class="progress-track" id="progress-track" style="display:none"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="status" id="send-status"></div>
+        <div class="result-box" id="result-box"></div>
+        <button class="btn ghost" id="report-btn" style="display:none" onclick="sendReport()">إرسال النتيجة إلى المسؤول</button>
+    </div>
+
+</div>
+
+<script>
+// رقم واتساب المسؤول الذي تصله نتيجة العملية (بصيغة دولية بلا علامة +)
+const MANAGER_WHATSAPP = '9647704642412';
+
+let deviceReady = false;
+let fileData = null;
+let lastReport = '';
+
+function el(id) { return document.getElementById(id); }
+
+function escapeHtml(text) {
+    return String(text ?? '').replace(/[&<>"']/g, c =>
+        ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
+}
+
+/** صيغة العدد في العربية تختلف: موظف واحد، موظفان، 3-10 موظفين، ثم موظفاً */
+function countWord(n, forms) {
+    if (n === 1) return forms.one;
+    if (n === 2) return forms.two;
+    if (n >= 3 && n <= 10) return n + ' ' + forms.few;
+    return n + ' ' + forms.many;
+}
+
+const EMP = {one: 'موظف واحد', two: 'موظفان', few: 'موظفين', many: 'موظفاً'};
+const FINGER = {one: 'بصمة واحدة', two: 'بصمتان', few: 'بصمات', many: 'بصمة'};
+
+function showStatus(id, html, kind) {
+    const box = el(id);
+    box.innerHTML = html;
+    box.className = 'status show ' + kind;
+}
+
+function setBusy(btn, busy, text) {
+    if (busy) {
+        btn.dataset.label = btn.dataset.label || btn.textContent;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span> ' + escapeHtml(text);
+    } else {
+        btn.disabled = false;
+        btn.textContent = btn.dataset.label;
+    }
+}
+
+async function api(path, body) {
+    const options = body
+        ? {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body)}
+        : {};
+    try {
+        const res = await fetch(path, options);
+        return await res.json();
+    } catch (e) {
+        return {success: false, message: 'تعذّر الاتصال بالتطبيق — أعد فتحه'};
+    }
+}
+
+function refreshSendButton() {
+    el('send-btn').disabled = !(deviceReady && fileData);
+}
+
+// ---------- 1 - الجهاز ----------
+async function checkDevice() {
+    const ip = el('device-ip').value.trim();
+    if (!ip) { showStatus('device-status', 'اكتب عنوان الجهاز أولاً', 'bad'); return; }
+
+    deviceReady = false;
+    refreshSendButton();
+    const btn = el('check-btn');
+    setBusy(btn, true, 'جارِ الفحص...');
+    const res = await api('/api/device/check', {ip});
+    setBusy(btn, false);
+
+    if (!res.success) {
+        showStatus('device-status', escapeHtml(res.message), 'bad');
+        el('card-device').classList.remove('done');
+        return;
+    }
+
+    deviceReady = true;
+    el('card-device').classList.add('done');
+    showStatus('device-status',
+        `متصل بالجهاز ✔<br>عدد الموظفين المسجّلين حالياً: ${res.employees_count}`, 'ok');
+    refreshSendButton();
+}
+
+// ---------- 2 - الملف ----------
+async function fileChosen() {
+    fileData = null;
+    refreshSendButton();
+    const file = el('emp-file').files[0];
+    if (!file) return;
+
+    let data;
+    try {
+        data = JSON.parse(await file.text());
+    } catch (e) {
+        showStatus('file-status', 'هذا الملف غير صالح — تأكد أنه الملف الذي أُرسل إليك', 'bad');
+        return;
+    }
+    if (!data || data.format !== 'zkcontrol-employees' || !Array.isArray(data.employees) || !data.employees.length) {
+        showStatus('file-status', 'هذا الملف غير صالح — تأكد أنه الملف الذي أُرسل إليك', 'bad');
+        return;
+    }
+
+    fileData = data;
+    const fingers = data.employees.reduce((n, e) => n + ((e.fingers || []).length), 0);
+    el('card-file').classList.add('done');
+    showStatus('file-status',
+        `الملف سليم ✔<br>يحتوي ${countWord(data.employees.length, EMP)} و${countWord(fingers, FINGER)}`, 'ok');
+    refreshSendButton();
+}
+
+// ---------- 3 - الإرسال ----------
+async function startImport() {
+    if (!deviceReady || !fileData) return;
+
+    const btn = el('send-btn');
+    setBusy(btn, true, 'جارِ الإرسال...');
+    el('result-box').className = 'result-box';
+    el('report-btn').style.display = 'none';
+    el('progress-track').style.display = 'block';
+    el('progress-fill').style.width = '0%';
+    showStatus('send-status', 'لا تغلق التطبيق ولا تبتعد عن الشبكة حتى تنتهي العملية.', 'plain');
+
+    const res = await api('/api/import/start', {
+        ip: el('device-ip').value.trim(),
+        employees: fileData.employees,
+    });
+
+    if (!res.success) {
+        setBusy(btn, false);
+        el('progress-track').style.display = 'none';
+        showStatus('send-status', escapeHtml(res.message), 'bad');
+        return;
+    }
+    pollImport(res.job_id);
+}
+
+async function pollImport(jobId) {
+    const s = await api('/api/import/status/' + encodeURIComponent(jobId));
+    const btn = el('send-btn');
+
+    if (!s.success) {
+        setBusy(btn, false);
+        showStatus('send-status', escapeHtml(s.message || 'تعذّر متابعة العملية'), 'bad');
+        return;
+    }
+
+    const pct = s.total ? Math.round((s.done / s.total) * 100) : 0;
+    el('progress-fill').style.width = pct + '%';
+
+    if (s.status === 'running') {
+        showStatus('send-status', `جارِ الإرسال: ${s.done} من ${s.total}`, 'plain');
+        setTimeout(() => pollImport(jobId), 1000);
+        return;
+    }
+
+    setBusy(btn, false);
+    if (s.status === 'error') {
+        showStatus('send-status', escapeHtml(s.message), 'bad');
+        buildReport(s, true);
+        return;
+    }
+
+    showStatus('send-status', 'انتهت العملية.', 'ok');
+    showResult(s);
+    buildReport(s, false);
+}
+
+function showResult(s) {
+    const box = el('result-box');
+    let html = '';
+
+    if (s.added === 0) {
+        // الحالة التي قد يظنها نجاحًا وهي ليست كذلك
+        html += `<div class="result-line" style="color:var(--warning)"><b>تنبيه: لم يُضَف أي موظف جديد.</b><br>` +
+            `كل الموظفين في الملف مسجّلون مسبقاً على الجهاز. أبلغ المسؤول بذلك.</div>`;
+    } else {
+        html += `<div class="result-line">أُضيف إلى الجهاز <span class="big-number" style="color:var(--success)">${s.added}</span> ` +
+            `${s.added === 1 ? 'موظف' : s.added === 2 ? 'موظفان' : (s.added <= 10 ? 'موظفين' : 'موظفاً')}</div>`;
+    }
+
+    if (s.skipped) html += `<div class="result-line">${countWord(s.skipped, EMP)} كانوا مسجّلين مسبقاً ولم يُمسّوا</div>`;
+    if (s.fingers_sent) {
+        const allOk = s.fingers === s.fingers_sent;
+        html += `<div class="result-line">البصمات: <b style="color:var(${allOk ? '--success' : '--danger'})">` +
+            `${s.fingers} من ${s.fingers_sent}</b> تأكّد حفظها على الجهاز</div>`;
+    }
+    if (s.failed.length) {
+        html += `<div class="result-line" style="color:var(--danger)">لم ينجح ${countWord(s.failed.length, EMP)} — أبلغ المسؤول</div>`;
+    }
+    if (s.finger_failed && s.finger_failed.length) {
+        html += `<div class="result-line" style="color:var(--danger)">${countWord(s.finger_failed.length, FINGER)} لم تُحفظ — أبلغ المسؤول</div>`;
+    }
+
+    box.innerHTML = html;
+    box.className = 'result-box show';
+}
+
+function buildReport(s, failedAll) {
+    const now = new Date();
+    const stamp = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+
+    const lines = ['نتيجة إضافة الموظفين', 'الجهاز: ' + el('device-ip').value.trim()];
+    if (failedAll) {
+        lines.push('فشلت العملية: ' + (s.message || 'سبب غير معروف'));
+    } else {
+        lines.push('أُضيف: ' + s.added + ' موظف');
+        lines.push('متخطّى (مسجّل مسبقاً): ' + s.skipped);
+        lines.push('البصمات المؤكَّدة: ' + s.fingers + ' من ' + s.fingers_sent);
+        if (s.failed.length) lines.push('لم ينجح: ' + s.failed.length);
+        if (s.finger_failed && s.finger_failed.length) lines.push('بصمات لم تُحفظ: ' + s.finger_failed.length);
+        lines.push('نوع الاتصال: ' + (s.protocol || '—'));
+    }
+    lines.push('التاريخ: ' + stamp);
+
+    lastReport = lines.join('\n');
+    el('report-btn').style.display = 'block';
+}
+
+function sendReport() {
+    if (!lastReport) return;
+    // واتساب لا يسمح لأي تطبيق بإرسال رسالة دون ضغطة المستخدم، فنفتح
+    // المحادثة والنص جاهز في خانة الكتابة ويبقى عليه الضغط على إرسال
+    const url = 'https://wa.me/' + MANAGER_WHATSAPP + '?text=' + encodeURIComponent(lastReport);
+    if (window.AndroidBridge && window.AndroidBridge.openWhatsApp) {
+        window.AndroidBridge.openWhatsApp(url, lastReport);
+    } else {
+        window.open(url, '_blank');
+    }
+}
+
+// عنوان الجهاز المحفوظ من آخر مرة
+(async function init() {
+    const res = await api('/api/device');
+    if (res.success && res.ip) {
+        el('device-ip').value = res.ip;
+        showStatus('device-status', 'العنوان محفوظ من آخر مرة — اضغط فحص الاتصال', 'plain');
+    }
+})();
+</script>
+
+</body>
+</html>
